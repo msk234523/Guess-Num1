@@ -1,95 +1,114 @@
 import random
 
+# ── ダークテーマ用 ANSI カラーコード ──────────────────────────────
+class C:
+    RESET   = "\033[0m"
+    BOLD    = "\033[1m"
+    BG      = "\033[40m"    # 黒背景
+    WHITE   = "\033[97m"    # 明るい白
+    CYAN    = "\033[96m"    # シアン（低い）
+    YELLOW  = "\033[93m"    # 黄（高い）
+    GREEN   = "\033[92m"    # 緑（正解）
+    RED     = "\033[91m"    # 赤（警告）
+    MAGENTA = "\033[95m"    # マゼンタ（統計）
+    DIM     = "\033[2m"     # 薄い文字
+
+def _p(color: str, text: str) -> None:
+    """ダークテーマで1行出力する"""
+    print(f"{C.BG}{color}{text}{C.RESET}")
+
+def _div(char: str = "─", width: int = 50) -> None:
+    _p(C.DIM, char * width)
+
+
 def play_guessing_game():
     """数字当てゲーム - Number guessing game"""
-    
-    print("=" * 50)
-    print("🎮 数字当てゲームへようこそ！")
-    print("Welcome to the Number Guessing Game!")
-    print("=" * 50)
+
+    _div("═")
+    _p(C.BOLD + C.WHITE, "  🎮 数字当てゲームへようこそ！")
+    _p(C.WHITE,           "     Welcome to the Number Guessing Game!")
+    _div("═")
     print()
-    
+
     # ゲーム統計
     total_games = 0
     total_attempts = 0
-    
+
     while True:
         # ランダムに1～100の数字を生成
         secret_number = random.randint(1, 100)
         attempts = 0
         guessed = False
-        
-        print(f"\n🎯 新しいゲームを開始します。1～100の数字を当ててください。")
-        print("New game started. Guess a number between 1 and 100.")
+
         print()
-        
+        _p(C.CYAN, "  🎯 新しいゲームを開始します。1～100の数字を当ててください。")
+        _p(C.DIM,  "     New game started. Guess a number between 1 and 100.")
+        print()
+
         # ゲームループ
         while not guessed:
             try:
                 # プレイヤーの入力
-                guess = int(input("➜ あなたの予想: "))
+                guess = int(input(f"{C.BG}{C.WHITE}  ➜ あなたの予想: {C.RESET}"))
                 attempts += 1
-                
+
                 # 入力値の確認
                 if guess < 1 or guess > 100:
-                    print("⚠️  1～100の数字を入力してください。")
-                    print("   (Please enter a number between 1 and 100)")
+                    _p(C.RED, "  ⚠️  1～100の数字を入力してください。")
+                    _p(C.DIM, "      (Please enter a number between 1 and 100)")
                     attempts -= 1
                     continue
-                
+
                 # 結果判定
                 if guess < secret_number:
-                    print(f"📈 もっと大きい数字です！ (Too low!) - 試行回数: {attempts}回")
+                    _p(C.CYAN,   f"  📈 もっと大きい数字です！ (Too low!)  ─ 試行回数: {attempts}回")
                 elif guess > secret_number:
-                    print(f"📉 もっと小さい数字です！ (Too high!) - 試行回数: {attempts}回")
+                    _p(C.YELLOW, f"  📉 もっと小さい数字です！ (Too high!) ─ 試行回数: {attempts}回")
                 else:
                     # 正解！
                     guessed = True
                     print()
-                    print("🎉 " + "=" * 40)
-                    print("🎊 恭喜通過！おめでとうございます！")
-                    print("   Congratulations! You got it right!")
-                    print("=" * 40)
-                    print(f"✨ 正解の数字: {secret_number}")
-                    print(f"   Correct number: {secret_number}")
-                    print(f"✨ 試行回数: {attempts}回")
-                    print(f"   Attempts: {attempts}")
-                    print("=" * 40)
+                    _div("═")
+                    _p(C.BOLD + C.GREEN, "  🎉 おめでとうございます！ Congratulations!")
+                    _div("─")
+                    _p(C.WHITE, f"  ✨ 正解の数字 / Correct number : {secret_number}")
+                    _p(C.WHITE, f"  ✨ 試行回数   / Attempts       : {attempts}回")
+                    _div("═")
                     print()
-                    
+
                     # 統計更新
                     total_games += 1
                     total_attempts += attempts
-                    
+
             except ValueError:
-                print("⚠️  数字を入力してください。(Please enter a valid number)")
+                _p(C.RED, "  ⚠️  数字を入力してください。(Please enter a valid number)")
                 continue
-        
+
         # 続行確認
         while True:
-            replay = input("\n▶️  もう一度プレイしますか？ (Play again? (y/n)): ").strip().lower()
+            replay = input(
+                f"{C.BG}{C.WHITE}  ▶️  もう一度プレイしますか？ (Play again? y/n): {C.RESET}"
+            ).strip().lower()
             if replay in ['y', 'yes', 'はい']:
                 break
             elif replay in ['n', 'no', 'いいえ']:
                 # ゲーム終了時の統計
                 print()
-                print("=" * 50)
-                print("📊 ゲーム統計 (Game Statistics)")
-                print("=" * 50)
-                print(f"🎮 プレイしたゲーム数: {total_games}回")
-                print(f"   Total games played: {total_games}")
+                _div("═")
+                _p(C.BOLD + C.MAGENTA, "  📊 ゲーム統計 (Game Statistics)")
+                _div("─")
+                _p(C.WHITE, f"  🎮 プレイしたゲーム数 / Total games  : {total_games}回")
                 if total_games > 0:
-                    avg_attempts = total_attempts / total_games
-                    print(f"📈 平均試行回数: {avg_attempts:.2f}回")
-                    print(f"   Average attempts: {avg_attempts:.2f}")
-                print("=" * 50)
+                    avg = total_attempts / total_games
+                    _p(C.WHITE, f"  📈 平均試行回数       / Avg attempts : {avg:.2f}回")
+                _div("═")
                 print()
-                print("🙏 プレイしてくれてありがとうございました！")
-                print("   Thank you for playing!")
+                _p(C.CYAN, "  🙏 プレイしてくれてありがとうございました！")
+                _p(C.DIM,  "     Thank you for playing!")
+                print()
                 return
             else:
-                print("⚠️  'y' または 'n' で答えてください。")
-                print("   (Please answer with 'y' or 'n')")
+                _p(C.RED, "  ⚠️  'y' または 'n' で答えてください。(Please answer with 'y' or 'n')")
 
 if __name__ == "__main__":
     play_guessing_game()

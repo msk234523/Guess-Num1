@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎮 数字当てゲーム / Number Guessing Game</title>
+  <style>
+    /* ── リセット & ベース ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0d0d0d;
+      color: #e8e8e8;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* ── カード ────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.7);
+    }
+
+    /* ── タイトル ──────────────────────────────────────── */
+    .title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: .85rem;
+      color: #666;
+      margin-bottom: 28px;
+    }
+
+    /* ── 区切り線 ──────────────────────────────────────── */
+    hr {
+      border: none;
+      border-top: 1px solid #2a2a2a;
+      margin: 24px 0;
+    }
+
+    /* ── 範囲バー ──────────────────────────────────────── */
+    .range-bar {
+      position: relative;
+      height: 6px;
+      background: #222;
+      border-radius: 3px;
+      margin-bottom: 28px;
+      overflow: visible;
+    }
+    .range-fill {
+      position: absolute;
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #9b59ff);
+      border-radius: 3px;
+      transition: left .3s, right .3s;
+    }
+    .range-pin {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #555;
+      display: none;
+      transition: left .3s;
+    }
+
+    /* ── メッセージログ ────────────────────────────────── */
+    #log {
+      min-height: 56px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding-right: 4px;
+    }
+    #log::-webkit-scrollbar { width: 4px; }
+    #log::-webkit-scrollbar-track { background: transparent; }
+    #log::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .msg {
+      font-size: .93rem;
+      line-height: 1.4;
+      padding: 8px 12px;
+      border-radius: 8px;
+      animation: fadeIn .25s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+    .msg-info    { background: #1a1a2e; color: #7ecfff; }
+    .msg-low     { background: #0f2030; color: #4fc3f7; border-left: 3px solid #4fc3f7; }
+    .msg-high    { background: #2a2000; color: #ffd740; border-left: 3px solid #ffd740; }
+    .msg-success { background: #0d2a1a; color: #69f0ae; border-left: 3px solid #69f0ae; }
+    .msg-error   { background: #2a0f0f; color: #ff6b6b; border-left: 3px solid #ff6b6b; }
+    .msg-stat    { background: #1e1030; color: #ce93d8; }
+
+    /* ── 入力エリア ────────────────────────────────────── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="number"] {
+      flex: 1;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.05rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus {
+      border-color: #555;
+      box-shadow: 0 0 0 3px rgba(100,100,255,.15);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      font-size: .95rem;
+      font-weight: 600;
+      padding: 12px 22px;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4a90ff, #9b59ff);
+      color: #fff;
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #00c853, #00bfa5);
+      color: #fff;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #e53935, #c62828);
+      color: #fff;
+    }
+
+    /* ── 統計 ──────────────────────────────────────────── */
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-top: 4px;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #ce93d8;
+    }
+    .stat-label {
+      font-size: .75rem;
+      color: #555;
+      margin-top: 2px;
+    }
+
+    /* ── 試行カウンター ────────────────────────────────── */
+    .attempt-badge {
+      display: inline-block;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: .8rem;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    /* ── フッター ──────────────────────────────────────── */
+    footer {
+      margin-top: 20px;
+      font-size: .75rem;
+      color: #333;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="title">🎮 数字当てゲーム</div>
+  <div class="subtitle">Number Guessing Game &nbsp;·&nbsp; 1 ~ 100</div>
+
+  <!-- 範囲バー -->
+  <div class="range-bar">
+    <div class="range-fill" id="rangeFill" style="left:0%;right:0%;"></div>
+    <div class="range-pin"  id="rangePin"></div>
+  </div>
+
+  <!-- メッセージ -->
+  <div id="log"></div>
+
+  <!-- 試行回数 -->
+  <div class="attempt-badge" id="attemptBadge">試行回数 / Attempts: 0</div>
+
+  <!-- 入力 -->
+  <div class="input-row" id="inputArea">
+    <input id="guessInput" type="number" min="1" max="100"
+           placeholder="1 〜 100 を入力…" autocomplete="off" />
+    <button class="btn-primary" id="guessBtn" onclick="submitGuess()">予想する</button>
+  </div>
+
+  <!-- もう一度ボタン（正解後に表示） -->
+  <div id="replayArea" style="display:none; margin-top:16px; gap:10px; flex-direction:column;">
+    <button class="btn-success" onclick="newGame()">▶️  もう一度プレイ / Play Again</button>
+    <button class="btn-danger"  onclick="endGame()">⏹  終了 / Quit</button>
+  </div>
+
+  <hr />
+
+  <!-- 統計 -->
+  <div class="stats">
+    <div>
+      <div class="stat-value" id="statGames">0</div>
+      <div class="stat-label">ゲーム数 / Games</div>
+    </div>
+    <div>
+      <div class="stat-value" id="statBest">—</div>
+      <div class="stat-label">最少回数 / Best</div>
+    </div>
+    <div>
+      <div class="stat-value" id="statAvg">—</div>
+      <div class="stat-label">平均 / Avg</div>
+    </div>
+  </div>
+</div>
+
+<footer>ブラウザのみで動作 · Pure client-side · No server required</footer>
+
+<script>
+  /* ── 状態 ────────────────────────────────────────────── */
+  let secret = 0;
+  let attempts = 0;
+  let lo = 1, hi = 100;          // 絞り込み範囲
+  let totalGames = 0;
+  let totalAttempts = 0;
+  let bestAttempts = Infinity;
+  let gameOver = false;
+
+  /* ── 初期化 ──────────────────────────────────────────── */
+  function init() {
+    secret   = Math.floor(Math.random() * 100) + 1;
+    attempts = 0;
+    lo = 1; hi = 100;
+    gameOver = false;
+
+    clearLog();
+    addMsg('info', '🎯 新しいゲームを開始しました！1〜100の数字を当ててください。<br>'
+                 + '<span style="opacity:.6;font-size:.85em">New game started. Guess a number between 1 and 100.</span>');
+
+    updateAttemptBadge();
+    updateRangeBar(1, 100, null);
+
+    const input = document.getElementById('guessInput');
+    input.value = '';
+    input.disabled = false;
+    input.focus();
+
+    document.getElementById('guessBtn').disabled = false;
+    document.getElementById('inputArea').style.display = '';
+    document.getElementById('replayArea').style.display = 'none';
+  }
+
+  /* ── 予想を送信 ──────────────────────────────────────── */
+  function submitGuess() {
+    if (gameOver) return;
+
+    const input = document.getElementById('guessInput');
+    const val   = parseInt(input.value, 10);
+
+    if (isNaN(val) || val < 1 || val > 100) {
+      addMsg('error', '⚠️ 1〜100 の整数を入力してください。 / Please enter a number between 1 and 100.');
+      input.value = '';
+      input.focus();
+      return;
+    }
+
+    attempts++;
+    updateAttemptBadge();
+    input.value = '';
+
+    if (val < secret) {
+      lo = Math.max(lo, val + 1);
+      addMsg('low', `📈 <strong>${val}</strong> — もっと大きい数字です！(Too low!)`);
+      updateRangeBar(lo, hi, val);
+    } else if (val > secret) {
+      hi = Math.min(hi, val - 1);
+      addMsg('high', `📉 <strong>${val}</strong> — もっと小さい数字です！(Too high!)`);
+      updateRangeBar(lo, hi, val);
+    } else {
+      // 正解！
+      gameOver = true;
+      totalGames++;
+      totalAttempts += attempts;
+      if (attempts < bestAttempts) bestAttempts = attempts;
+
+      addMsg('success',
+        `🎉 <strong>${val}</strong> — おめでとうございます！ Congratulations!<br>`
+      + `<span style="opacity:.75;">✨ ${attempts} 回で正解しました。/ Solved in ${attempts} attempt${attempts>1?'s':''}.</span>`);
+
+      updateRangeBar(lo, hi, val);
+      updateStats();
+
+      // 入力を隠してリプレイボタンを表示
+      document.getElementById('inputArea').style.display = 'none';
+      const ra = document.getElementById('replayArea');
+      ra.style.display = 'flex';
+
+      document.getElementById('guessBtn').disabled = true;
+    }
+
+    scrollLog();
+    if (!gameOver) input.focus();
+  }
+
+  function newGame()  { init(); }
+  function endGame()  {
+    gameOver = true;
+    document.getElementById('inputArea').style.display  = 'none';
+    document.getElementById('replayArea').style.display = 'none';
+    addMsg('stat',
+      `📊 ゲーム統計 / Game Statistics<br>`
+    + `🎮 プレイしたゲーム数: ${totalGames} 回 &nbsp;|&nbsp; `
+    + `📈 平均試行回数: ${totalGames ? (totalAttempts/totalGames).toFixed(2) : '—'} 回 &nbsp;|&nbsp; `
+    + `⭐ 最少: ${bestAttempts === Infinity ? '—' : bestAttempts} 回<br>`
+    + `<span style="opacity:.6;font-size:.85em">🙏 プレイしてくれてありがとうございました！ Thank you for playing!</span>`);
+    scrollLog();
+  }
+
+  /* ── ヘルパー ────────────────────────────────────────── */
+  function addMsg(type, html) {
+    const log  = document.getElementById('log');
+    const div  = document.createElement('div');
+    div.className = 'msg msg-' + type;
+    div.innerHTML = html;
+    log.appendChild(div);
+  }
+  function clearLog() {
+    document.getElementById('log').innerHTML = '';
+  }
+  function scrollLog() {
+    const log = document.getElementById('log');
+    log.scrollTop = log.scrollHeight;
+  }
+  function updateAttemptBadge() {
+    document.getElementById('attemptBadge').textContent =
+      `試行回数 / Attempts: ${attempts}`;
+  }
+  function updateStats() {
+    document.getElementById('statGames').textContent = totalGames;
+    document.getElementById('statBest').textContent  =
+      bestAttempts === Infinity ? '—' : bestAttempts;
+    document.getElementById('statAvg').textContent   =
+      totalGames ? (totalAttempts / totalGames).toFixed(1) : '—';
+  }
+  function updateRangeBar(lo, hi, guess) {
+    const fill = document.getElementById('rangeFill');
+    const pin  = document.getElementById('rangePin');
+    const pct  = (v) => ((v - 1) / 99 * 100).toFixed(1) + '%';
+    fill.style.left  = pct(lo);
+    fill.style.right = (100 - (hi - 1) / 99 * 100).toFixed(1) + '%';
+    if (guess !== null) {
+      pin.style.display = 'block';
+      pin.style.left    = pct(guess);
+    }
+  }
+
+  /* ── Enter キーで送信 ───────────────────────────────── */
+  document.getElementById('guessInput')
+    .addEventListener('keydown', (e) => { if (e.key === 'Enter') submitGuess(); });
+
+  /* ── 起動 ────────────────────────────────────────────── */
+  init();
+</script>
+</body>
+</html>

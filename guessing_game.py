@@ -63,7 +63,6 @@ def play_guessing_game():
                     
             except ValueError:
                 print("⚠️  数字を入力してください。(Please enter a valid number)")
-                attempts -= 1
                 continue
         
         # 続行確認
